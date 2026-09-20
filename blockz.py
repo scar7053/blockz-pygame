@@ -140,13 +140,13 @@ class Game_Drawer:
             self.p = (nearZ - self.z1) / (self.z2-self.z1)
             if self.z1 < nearZ:
                 self.set_point1(
-                    self.x1 + ((x2-self.x1)*self.p),
+                    self.x1 + ((self.x2-self.x1)*self.p),
                     self.y1 + ((self.y2-self.y1)*self.p),
                     nearZ
                 )
             else:
                 self.set_point2(
-                    self.x1 + ((x2-self.x1)*self.p),
+                    self.x1 + ((self.x2-self.x1)*self.p),
                     self.y1 + ((self.y2-self.y1)*self.p),
                     nearZ
                 )
@@ -674,6 +674,7 @@ class Game_Levels:
         self.add_block(0,-9,0,5,1,20,"ground")
         self.add_block(0,4,0,5,1,20,"ground")
         self.add_block(4,-9,0,1,14,20,"ground")
+        self.add_block(0,-9,0,1,14,20,"ground")
         self.add_block(0,-9,0,5,14,1,"ground")
         self.add_block(1,0,1,3,1,3,"ground")
         self.add_block(1,-5,3,3,6,1,"ground")
@@ -738,7 +739,6 @@ game_updater = Game_Updater()
 game_levels = Game_Levels()
 timer_start = time.time()
 
-game_levels.init_level()
 running = True
 while running:
     for event in pygame.event.get():
