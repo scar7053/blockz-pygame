@@ -13,6 +13,8 @@ screen = pygame.display.set_mode((WIDTH,HEIGHT), pygame.SCALED | pygame.FULLSCRE
 pygame.display.set_caption("Blockz")
 clock = pygame.time.Clock()
 
+scene = "level_selection" # change this to "playing" to skip level selection
+
 if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
     base_dir = Path(sys._MEIPASS)
 else:
@@ -33,10 +35,10 @@ def play_song():
 play_song()
 
 sounds = {
-    "die": pygame.Sound(base_dir / "assets/die.wav"),
-    "end": pygame.Sound(base_dir / "assets/end.wav"),
-    "jump": pygame.Sound(base_dir / "assets/jump.wav"),
-    "bouncy": pygame.Sound(base_dir / "assets/bouncy.wav")
+    "die": pygame.mixer.Sound(base_dir / "assets/die.wav"),
+    "end": pygame.mixer.Sound(base_dir / "assets/end.wav"),
+    "jump": pygame.mixer.Sound(base_dir / "assets/jump.wav"),
+    "bouncy": pygame.mixer.Sound(base_dir / "assets/bouncy.wav")
 }
 
 alpha_overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
@@ -298,8 +300,8 @@ class Game_Updater:
     def update_camera_rotation(self, pressed):
         global deltatime, CameraRotX, CameraRotY
         pressed = pygame.key.get_pressed()
-        CameraRotX += (pressed[pygame.K_UP] - pressed[pygame.K_DOWN]) * 180 * deltatime
-        CameraRotY += (pressed[pygame.K_RIGHT] - pressed[pygame.K_LEFT]) * -180 * deltatime
+        CameraRotX += (pressed[pygame.K_UP] - pressed[pygame.K_DOWN]) * math.pi * deltatime
+        CameraRotY += (pressed[pygame.K_RIGHT] - pressed[pygame.K_LEFT]) * -math.pi * deltatime
         if any(pygame.mouse.get_pressed()):
             mouse_pos = list(pygame.mouse.get_pos())
             
@@ -316,10 +318,8 @@ class Game_Updater:
                 self.mouseOx, self.mouseOy = mouse_pos
         else:
             self.mouseRotation = 0
-        if CameraRotX < -90:
-            CameraRotX = -90
-        if CameraRotX > 30:
-            CameraRotX = 30
+        CameraRotX = max(-90, min(CameraRotX, 30))
+        #alpha_overlay.blit(font.render(str(CameraRotX), True, "white"))
 
     def check_player_collision(self):
         global playerX, playerY, playerZ, playerVelY, CameraRotX, CameraRotY
@@ -734,10 +734,69 @@ class Game_Levels:
         self.add_block(5,0,-4,3,1,3,"ground")
         self.add_block(5,0,-8,3,1,3,"ground")
 
+class Button(pygame.sprite.Sprite):
+    def __init__(self, *groups, x: float, y: float, w: float, h: float, action: function, color, text: str):
+        super().__init__(*groups)
+        self.rect = pygame.Rect(x, y, w, h)
+        self.bigger_rect = pygame.Rect(x-2, y-2, w+4, h+4)
+        self.color = color
+        self.action = action
+        self.text = text
+
+    def update(self):
+        cursor_touching = self.rect.collidepoint(pygame.mouse.get_pos())
+        if not cursor_touching:
+            pygame.draw.rect(screen, self.color, self.rect, width=3)
+        else:
+            pygame.draw.rect(screen, self.color, self.bigger_rect, width=3)
+
+        text_render = font.render(self.text, True, self.color)
+        screen.blit(text_render, (
+            self.rect.centerx - text_render.width // 2,
+            self.rect.centery - text_render.height // 2
+        ))
+
+        if cursor_touching and any(pygame.mouse.get_pressed(3)):
+            self.action()
+
 game_drawer = Game_Drawer()
 game_updater = Game_Updater()
 game_levels = Game_Levels()
 timer_start = time.time()
+
+buttons = pygame.sprite.Group()
+
+ROWS, COLS = 2,5
+CELL = 50
+GAP = 6
+
+grid_width = COLS * CELL + (COLS - 1) * GAP
+grid_height = ROWS * CELL + (ROWS - 1) * GAP
+grid_x = (WIDTH - grid_width) // 2
+grid_y = (HEIGHT - grid_height) // 2
+
+for row in range(ROWS):
+    for col in range(COLS):
+        x = grid_x + col * (CELL + GAP)
+        y = grid_y + row * (CELL + GAP)
+
+        idx = row * COLS + col
+
+        if idx <= 10-1:
+            color = "blue"
+            def action(idx=idx):
+                global level, scene
+                scene = "playing"
+                level = idx + 1
+                print(level)
+                game_levels.init_level()
+                game_updater.init_level()
+        else:
+            color = "grey"
+            def action():
+                return
+
+        Button(buttons, x=x, y=y, w=CELL, h=CELL, color=color, text=str(idx+1), action=action)
 
 running = True
 while running:
@@ -745,22 +804,28 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_r:
-                game_updater.init_level()
-                game_levels.init_level()
+            if scene == "playing":
+                if event.key == pygame.K_r:
+                    game_updater.init_level()
+                    game_levels.init_level()
             if event.key == pygame.K_f:
                 game_updater.fps_show ^= 1
             if event.key == pygame.K_t:
                 game_updater.time_show ^= 1
+            if event.key == pygame.K_ESCAPE:
+                scene = "level_selection"
         if event.type == SONG_END:
             play_song()
 
     deltatime = clock.tick(FPS)/1000
     current_fps = clock.get_fps()
 
-    alpha_overlay.fill((0,0,0,0))
     screen.fill((0,0,0))
-    game_updater.update()
-    game_drawer.draw()
-    screen.blit(alpha_overlay)
+    if scene == "playing":
+        alpha_overlay.fill((0,0,0,0))
+        game_updater.update()
+        game_drawer.draw()
+        screen.blit(alpha_overlay)
+    elif scene == "level_selection":
+        buttons.update()
     pygame.display.flip()
