@@ -43,9 +43,11 @@ sounds = {
 
 alpha_overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
 
-CameraRotX = -20
+CameraRotX = math.radians(-20)
 CameraRotY = 0
 CameraX, CameraY, CameraZ = 0,0,0
+
+mouse_sensitivity = math.radians(30)
 
 FL = 300
 nearZ = 0.3
@@ -313,13 +315,12 @@ class Game_Updater:
                 self.mouseRotation = 1
                 self.mouseOx, self.mouseOy = mouse_pos
             else:
-                CameraRotX += (mouse_pos[1]-self.mouseOy) / 2
-                CameraRotY += (mouse_pos[0]-self.mouseOx) / 2
+                CameraRotX += (mouse_pos[1]-self.mouseOy) * mouse_sensitivity
+                CameraRotY += (mouse_pos[0]-self.mouseOx) * mouse_sensitivity
                 self.mouseOx, self.mouseOy = mouse_pos
         else:
             self.mouseRotation = 0
-        CameraRotX = max(-90, min(CameraRotX, 30))
-        #alpha_overlay.blit(font.render(str(CameraRotX), True, "white"))
+        CameraRotX = max(math.radians(-90), min(CameraRotX, math.radians(30)))
 
     def check_player_collision(self):
         global playerX, playerY, playerZ, playerVelY, CameraRotX, CameraRotY
@@ -350,7 +351,7 @@ class Game_Updater:
             playerY = playerStartY
             playerZ = playerStartZ
             playerVelY = 0
-            CameraRotX = -20
+            CameraRotX = math.radians(-20)
             CameraRotY = 0
             self.collision = 0
 
@@ -788,7 +789,7 @@ for row in range(ROWS):
                 global level, scene
                 scene = "playing"
                 level = idx + 1
-                print(level)
+                #print(level)
                 game_levels.init_level()
                 game_updater.init_level()
         else:
