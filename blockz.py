@@ -97,7 +97,6 @@ class Game_Drawer:
         self.sort_Mid = 0
         self.vx,self.vy,self.vz = 0,0,0
         self.z = 0
-        self.c = 0
         self.collision = 0
         self.mouseOx = 0
         self.mouseOy = 0
@@ -113,20 +112,21 @@ class Game_Drawer:
         self.LayerIDs.clear()
         self.LayerValues.clear()
         for i in range(len(BlockX)):
-            self.vx = (BlockX[i-1]+(BlockSizeX[i-1]/2))-CameraX
-            self.vy = (BlockY[i-1]+(BlockSizeY[i-1]/2))-CameraY
-            self.vz = (BlockZ[i-1]+(BlockSizeZ[i-1]/2))-CameraZ
+            i -= 1
+            self.vx = (BlockX[i]+(BlockSizeX[i]/2))-CameraX
+            self.vy = (BlockY[i]+(BlockSizeY[i]/2))-CameraY
+            self.vz = (BlockZ[i]+(BlockSizeZ[i]/2))-CameraZ
             self.z = self.vx ** 2 + self.vy ** 2 + self.vz ** 2
             self.LayerValues.append(self.z)
             self.sort_Low = 1
             self.sort_High = len(self.LayerValues)
             while self.sort_Low < self.sort_High:
-                self.sort_Mid = math.floor((self.sort_Low+self.sort_High)/2)
+                self.sort_Mid = (self.sort_Low+self.sort_High)//2
                 if self.z < self.LayerValues[self.LayerIDs[self.sort_Mid-1]-1]:
                     self.sort_Low = self.sort_Mid + 1
                 else:
                     self.sort_High = self.sort_Mid
-            self.LayerIDs.insert(self.sort_Low-1, i)
+            self.LayerIDs.insert(self.sort_Low-1, i+1)
 
     def init_trigonometry(self):
         self.sinX = math.sin(CameraRotX)
@@ -249,7 +249,6 @@ class Game_Drawer:
 
 class Game_Updater:
     def __init__(self):
-        self.c = 0
         self.collision = 0
         self.mouseOx = 0
         self.mouseOy = 0
@@ -306,9 +305,7 @@ class Game_Updater:
         CameraRotY += (pressed[pygame.K_RIGHT] - pressed[pygame.K_LEFT]) * -math.pi * deltatime
         if any(pygame.mouse.get_pressed()):
             mouse_pos = list(pygame.mouse.get_pos())
-            
-            mouse_pos[0] -= WIDTH//2
-            mouse_pos[1] -= HEIGHT
+
             mouse_pos[0] /= -100
             mouse_pos[1] /= -100
             if self.mouseRotation == 0:
@@ -328,16 +325,14 @@ class Game_Updater:
             return
         self.CollisionID.clear()
         CollisionType.clear()
-        self.c = 2
         self.collision = 0
-        for _ in range(len(BlockX)-2):
-            self.c += 1
-            if playerX < (BlockX[self.c-1] + BlockSizeX[self.c-1]) and (playerX + playerSize) > BlockX[self.c-1]:
-                if playerY < (BlockY[self.c-1] + BlockSizeY[self.c-1]) and (playerY + playerSize) > BlockY[self.c-1]:
-                    if playerZ < (BlockZ[self.c-1] + BlockSizeZ[self.c-1]) and (playerZ + playerSize) > BlockZ[self.c-1]:
+        for c in range(3,len(BlockX)+1):
+            if playerX < (BlockX[c-1] + BlockSizeX[c-1]) and (playerX + playerSize) > BlockX[c-1]:
+                if playerY < (BlockY[c-1] + BlockSizeY[c-1]) and (playerY + playerSize) > BlockY[c-1]:
+                    if playerZ < (BlockZ[c-1] + BlockSizeZ[c-1]) and (playerZ + playerSize) > BlockZ[c-1]:
                         self.collision = 1
-                        self.CollisionID.append(self.c)
-                        CollisionType.append(BlockType[self.c-1])
+                        self.CollisionID.append(c)
+                        CollisionType.append(BlockType[c-1])
         if "end" in CollisionType:
             global level
             sounds["end"].play()
@@ -358,9 +353,7 @@ class Game_Updater:
     def player_y_movement(self, pressed, yDir: bool):
         global playerY, playerVelY, deltatime, BlockY, playerSize
         playerY += playerVelY * deltatime
-        playerVelY += -15 * deltatime
-        if playerVelY < -8:
-            playerVelY = -8
+        playerVelY = max(-8, playerVelY + -15 * deltatime)
 
         playerY += (yDir * 2 - 1) / 1000
         self.check_player_collision()
@@ -368,17 +361,13 @@ class Game_Updater:
         if self.collision == 1:
             playerVelY = 0
             if yDir:
-                self.c = 0
-                for _ in range(len(self.CollisionID)):
-                    self.c += 1
-                    self.getY = (BlockY[self.CollisionID[self.c-1]-1]) - playerSize
+                for c in range(1,len(self.CollisionID)+1):
+                    self.getY = (BlockY[self.CollisionID[c-1]-1]) - playerSize
                     if self.getY < playerY:
                         playerY = self.getY
             else:
-                self.c = 0
-                for _ in range(len(self.CollisionID)):
-                    self.c += 1
-                    self.getY = (BlockY[self.CollisionID[self.c-1]-1]) + BlockSizeY[self.CollisionID[self.c-1]-1]
+                for c in range(1,len(self.CollisionID)+1):
+                    self.getY = (BlockY[self.CollisionID[c-1]-1]) + BlockSizeY[self.CollisionID[c-1]-1]
                     if self.getY > playerY:
                         playerY = self.getY
                 if pressed[pygame.K_SPACE]:
@@ -403,11 +392,11 @@ class Game_Updater:
         playerX += x
         self.check_player_collision()
         if self.collision == 1:
-            playerX -= float(x)
+            playerX -= x
         playerZ += z
         self.check_player_collision()
         if self.collision == 1:
-            playerZ -= float(z)
+            playerZ -= z
 
     def update_player(self, pressed):
         self.player_y_movement(pressed, playerVelY > 0)
@@ -424,14 +413,12 @@ class Game_Updater:
 
     def player_shadow(self):
         global shadowY
-        self.c = 2
         shadowY = -999
-        for _ in range(len(BlockX)-2):
-            self.c += 1
-            if playerX < (BlockX[self.c-1] + BlockSizeX[self.c-1]) and (playerX + playerSize) > BlockX[self.c-1]:
-                if playerZ < (BlockZ[self.c-1] + BlockSizeZ[self.c-1]) and (playerZ + playerSize) > BlockZ[self.c-1]:
-                    self.getY = BlockY[self.c-1] + BlockSizeY[self.c-1]
-                    if shadowY < self.getY and not playerY < self.getY:
+        for c in range(3, len(BlockX)+1):
+            if playerX < (BlockX[c-1] + BlockSizeX[c-1]) and (playerX + playerSize) > BlockX[c-1]:
+                if playerZ < (BlockZ[c-1] + BlockSizeZ[c-1]) and (playerZ + playerSize) > BlockZ[c-1]:
+                    self.getY = BlockY[c-1] + BlockSizeY[c-1]
+                    if playerY >= self.getY:
                         shadowY = self.getY
 
     def update(self):
