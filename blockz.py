@@ -7,7 +7,7 @@ from pathlib import Path
 pygame.init()
 pygame.mixer.init()
 
-FPS = 30
+FPS = 240
 WIDTH,HEIGHT = 480,360
 screen = pygame.display.set_mode((WIDTH,HEIGHT), pygame.SCALED | pygame.FULLSCREEN)
 pygame.display.set_caption("Blockz")
@@ -211,7 +211,7 @@ class Game_Drawer:
                 pygame.draw.aacircle(
                     overlay if overlay else alpha_overlay,
                     [*DRAW_COLOR, DRAW_TRANSPARENCY],
-                    (round(self.x1/self.z1*FL+WIDTH//2),HEIGHT-(round(self.y1/self.z1*FL)+HEIGHT//2)),
+                    drawing_points[0],
                     DRAW_SIZE
                 )
                 self.used_circle_points.append(drawing_points[0])
@@ -219,7 +219,7 @@ class Game_Drawer:
                 pygame.draw.aacircle(
                     overlay if overlay else alpha_overlay,
                     [*DRAW_COLOR, DRAW_TRANSPARENCY],
-                    (round(self.x2/self.z2*FL)+WIDTH//2,HEIGHT-(round(self.y2/self.z2*FL)+HEIGHT//2)),
+                    drawing_points[1],
                     DRAW_SIZE
                 )
                 self.used_circle_points.append(drawing_points[1])
