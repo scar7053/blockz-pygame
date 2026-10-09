@@ -108,6 +108,10 @@ class Game_Drawer:
         self.LayerValues = []
         self.CollisionID = 0
 
+        # variables that arent a part of the original game
+        # and are used for different purposes
+        self.used_circle_points = []
+
     def block_order(self):
         self.LayerIDs.clear()
         self.LayerValues.clear()
@@ -192,25 +196,33 @@ class Game_Drawer:
             self.z_clipping()
             DRAW_SIZE = max(1, int(size / ((self.z1 + self.z2) / 2) * FL))
 
+            drawing_points = [
+                (round(self.x1/self.z1*FL)+WIDTH//2,HEIGHT-(round(self.y1/self.z1*FL)+HEIGHT//2)),
+                (round(self.x2/self.z2*FL)+WIDTH//2,HEIGHT-(round(self.y2/self.z2*FL)+HEIGHT//2))
+            ]
             pygame.draw.aaline(
                 overlay if overlay else alpha_overlay,
                 [*DRAW_COLOR, DRAW_TRANSPARENCY],
-                (round(self.x1/self.z1*FL)+WIDTH//2,HEIGHT-(round(self.y1/self.z1*FL)+HEIGHT//2)),
-                (round(self.x2/self.z2*FL)+WIDTH//2,HEIGHT-(round(self.y2/self.z2*FL)+HEIGHT//2)),
+                drawing_points[0],
+                drawing_points[1],
                 DRAW_SIZE*2
             )
-            pygame.draw.aacircle(
-                overlay if overlay else alpha_overlay,
-                [*DRAW_COLOR, DRAW_TRANSPARENCY],
-                (round(self.x1/self.z1*FL+WIDTH//2),HEIGHT-(round(self.y1/self.z1*FL)+HEIGHT//2)),
-                DRAW_SIZE
-            )
-            pygame.draw.aacircle(
-                overlay if overlay else alpha_overlay,
-                [*DRAW_COLOR, DRAW_TRANSPARENCY],
-                (round(self.x2/self.z2*FL)+WIDTH//2,HEIGHT-(round(self.y2/self.z2*FL)+HEIGHT//2)),
-                DRAW_SIZE
-            )
+            if drawing_points[0] not in self.used_circle_points:
+                pygame.draw.aacircle(
+                    overlay if overlay else alpha_overlay,
+                    [*DRAW_COLOR, DRAW_TRANSPARENCY],
+                    (round(self.x1/self.z1*FL+WIDTH//2),HEIGHT-(round(self.y1/self.z1*FL)+HEIGHT//2)),
+                    DRAW_SIZE
+                )
+                self.used_circle_points.append(drawing_points[0])
+            if drawing_points[1] not in self.used_circle_points:
+                pygame.draw.aacircle(
+                    overlay if overlay else alpha_overlay,
+                    [*DRAW_COLOR, DRAW_TRANSPARENCY],
+                    (round(self.x2/self.z2*FL)+WIDTH//2,HEIGHT-(round(self.y2/self.z2*FL)+HEIGHT//2)),
+                    DRAW_SIZE
+                )
+                self.used_circle_points.append(drawing_points[1])
 
     def draw_block(self,x,y,z,sizeX,sizeY,sizeZ):
         temp = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)
@@ -230,6 +242,7 @@ class Game_Drawer:
 
     def draw_all_blocks(self):
         global DRAW_COLOR
+        self.used_circle_points.clear()
         for i in range(len(self.LayerIDs)):
             self.getID = self.LayerIDs[i-1]
             DRAW_COLOR = BlockColor[self.getID-1]
