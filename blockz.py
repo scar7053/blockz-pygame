@@ -7,7 +7,7 @@ from pathlib import Path
 pygame.init()
 pygame.mixer.init()
 
-FPS = 240
+FPS = 30
 WIDTH,HEIGHT = 480,360
 screen = pygame.display.set_mode((WIDTH,HEIGHT), pygame.SCALED | pygame.FULLSCREEN)
 pygame.display.set_caption("Blockz")
